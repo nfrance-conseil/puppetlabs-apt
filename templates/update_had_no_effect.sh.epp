@@ -1,0 +1,21 @@
+set -x
+eval "$(apt-config shell DIR Dir::Cache)"
+cd "/$DIR" || exit 0
+OLD="$(mktemp -p "/$DIR")"
+eval "$(apt-config shell CUR Dir::Cache::pkgcache)"
+ln -f "$CUR" "$OLD"
+TRIES=<%= $apt::_update['tries'] %>
+while true; do
+  if timeout 1 true; then
+    timeout <%= $apt::_update['timeout'] %> <%= $apt::provider %> update && break
+  else
+    <%= $apt::provider %> update && break
+  fi
+  [ $TRIES -le 1 ] && break
+  sleep 1
+  TRIES=$(( TRIES - 1 ))
+done
+cmp "$CUR" "$OLD"
+SAME=$?
+rm -f "$OLD"
+exit $SAME
